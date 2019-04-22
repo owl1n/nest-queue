@@ -1,0 +1,61 @@
+{
+  "name": "nest-queue",
+  "version": "1.0.0",
+  "description": "Queue manager for NestJS Framework for Redis (via bull package)",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage",
+    "coveralls": "yarn run coverage --coverageReporters=text-lcov | coveralls",
+    "test:watch": "jest --watch",
+    "build": "rm -rf ./dist && tsc && npm run build:index",
+    "build:index": "rm -rf ./index.js ./index.d.ts && tsc -d --skipLibCheck ./index.ts",
+    "format": "prettier **/*.ts --ignore-path ./.prettierignore --write && git status",
+    "prepublish": "npm run format && npm run build"
+  },
+  "keywords": [
+    "nestjs",
+    "typescript",
+    "queue",
+    "redis"
+  ],
+  "author": {
+    "name": "Markin Maxim",
+    "email": "mxrkin@yandex.ru"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@nestjs/common": "^6.1.1",
+    "@nestjs/core": "^6.1.1",
+    "bull": "^3.7.0",
+    "rxjs": "^6.2.2"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^6.1.1",
+    "@nestjs/core": "^6.1.1",
+    "@types/bull": "3.5.11",
+    "@types/jest": "24.0.11",
+    "@types/node": "11.13.5",
+    "bull": "3.7.0",
+    "coveralls": "3.0.3",
+    "jest": "24.7.1",
+    "reflect-metadata": "0.1.13",
+    "rxjs": "6.4.0",
+    "prettier": "1.17.0",
+    "typescript": "3.4.4",
+    "ts-jest": "24.0.2"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".spec.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "coverageDirectory": "./coverage"
+  }
+}
