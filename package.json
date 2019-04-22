@@ -1,6 +1,6 @@
 {
   "name": "nest-queue",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Queue manager for NestJS Framework for Redis (via bull package)",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,10 @@
     "queue",
     "redis"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/owl1n/nest-queue"
+  },
   "author": {
     "name": "Markin Maxim",
     "email": "mxrkin@yandex.ru"
