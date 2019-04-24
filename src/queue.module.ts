@@ -9,11 +9,9 @@ const defaultOptions: QueueModuleOptions = {
   name: "default",
   connection: {
     redis: {
-      port: 6379
-    }
+      port: 6379,
+    },
   },
-  consumers: [],
-  providers: []
 };
 
 @Global()
