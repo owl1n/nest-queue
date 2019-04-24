@@ -1,6 +1,6 @@
 {
   "name": "nest-queue",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Queue manager for NestJS Framework for Redis (via bull package)",
   "main": "index.js",
   "scripts": {
