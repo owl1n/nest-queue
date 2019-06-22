@@ -1,6 +1,6 @@
 {
   "name": "nest-queue",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Queue manager for NestJS Framework for Redis (via bull package)",
   "main": "index.js",
   "scripts": {
@@ -43,11 +43,11 @@
     "bull": "3.7.0",
     "coveralls": "3.0.3",
     "jest": "24.7.1",
+    "prettier": "1.17.0",
     "reflect-metadata": "0.1.13",
     "rxjs": "6.4.0",
-    "prettier": "1.17.0",
-    "typescript": "3.4.4",
-    "ts-jest": "24.0.2"
+    "ts-jest": "24.0.2",
+    "typescript": "3.4.4"
   },
   "jest": {
     "moduleFileExtensions": [
