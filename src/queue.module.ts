@@ -30,9 +30,10 @@ export class QueueModule implements OnModuleInit {
 
     if (consumers && consumers.length) {
       consumers.forEach(consumer => {
-        this.queue.process(consumer.eventName, (...args) =>
-          consumer.callback.apply(consumer.instance, ...args)
-        );
+        this.queue.process(consumer.eventName, (...args) => {
+          consumer.instance.callback = consumer.callback;
+          consumer.instance.callback(...args);
+        });
       });
     }
   }
