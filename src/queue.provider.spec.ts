@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DiscoveryService } from "@nestjs/core";
 import { MetadataScanner } from "@nestjs/core/metadata-scanner";
-import { Queue } from "bull";
+import { QueueAdapter } from "./queue.adapters";
 import { QueueProvider } from "./queue.provider";
 import { QUEUE_EVENT_METADATA } from "./queue.types";
 
@@ -38,14 +38,18 @@ describe("QueueProvider", () => {
     );
 
     const queue = {
-      process: jest.fn()
-    } as unknown as Queue;
+      name: "default",
+      driver: "bull",
+      close: async () => undefined,
+      getClient: () => undefined,
+      registerConsumer: jest.fn()
+    } as unknown as QueueAdapter;
 
     queueProvider.registerConsumers(new Map([["default", queue]]));
 
-    expect(queue.process).toHaveBeenCalledTimes(1);
+    expect(queue.registerConsumer).toHaveBeenCalledTimes(1);
 
-    const [, handler] = (queue.process as jest.Mock).mock.calls[0] as [
+    const [, handler] = (queue.registerConsumer as jest.Mock).mock.calls[0] as [
       string,
       (job: unknown, done: () => void) => unknown
     ];
@@ -86,11 +90,36 @@ describe("QueueProvider", () => {
     );
 
     const queue = {
-      process: jest.fn()
-    } as unknown as Queue;
+      name: "default",
+      driver: "bull",
+      close: async () => undefined,
+      getClient: () => undefined,
+      registerConsumer: jest.fn()
+    } as unknown as QueueAdapter;
 
     queueProvider.registerConsumers(new Map([["default", queue]]));
 
-    expect(queue.process).not.toHaveBeenCalled();
+    expect(queue.registerConsumer).not.toHaveBeenCalled();
+  });
+
+  it("normalizes driver and connection defaults", () => {
+    const [bullOptions, bullMqOptions] = QueueProvider.normalizeOptions([
+      { name: "default" },
+      { name: "events", driver: "bullmq" }
+    ]);
+
+    expect(bullOptions).toMatchObject({
+      name: "default",
+      driver: "bull"
+    });
+
+    expect(bullMqOptions).toMatchObject({
+      name: "events",
+      driver: "bullmq",
+      connection: {
+        host: "127.0.0.1",
+        port: 6379
+      }
+    });
   });
 });

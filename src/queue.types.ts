@@ -13,3 +13,7 @@ export function normalizeQueueName(name?: string): string {
 export function getQueueToken(name?: string): string {
 	return `nestQueue_${normalizeQueueName(name)}`;
 }
+
+export function getQueueAdapterToken(name?: string): string {
+	return `nestQueueAdapter_${normalizeQueueName(name)}`;
+}

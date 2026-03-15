@@ -1,5 +1,4 @@
 import * as Bull from "bull";
-import { Queue } from "bull";
 import {
   FactoryProvider,
   Injectable,
@@ -11,11 +10,14 @@ import { DiscoveryService } from "@nestjs/core";
 import { MetadataScanner } from "@nestjs/core/metadata-scanner";
 import {
   QueueModuleAsyncOptions,
+  QueueDriver,
   QueueModuleOptions,
   QueueModuleOptionsFactory
 } from "./queue.interfaces";
+import { createQueueAdapter, QueueAdapter } from "./queue.adapters";
 import {
   DEFAULT_QUEUE_NAME,
+  getQueueAdapterToken,
   getQueueToken,
   normalizeQueueName,
   QUEUE_EVENT_METADATA,
@@ -35,7 +37,8 @@ interface EventConsumerDescriptor extends EventConsumerMetadata {
 
 interface NormalizedQueueModuleOptions {
   name: string;
-  connection: Bull.QueueOptions;
+  driver: QueueDriver;
+  connection: unknown;
 }
 
 const BASE_CONNECTION: Bull.QueueOptions = {
@@ -43,6 +46,29 @@ const BASE_CONNECTION: Bull.QueueOptions = {
     port: 6379
   }
 };
+
+const BASE_BULLMQ_CONNECTION: Record<string, unknown> = {
+  host: "127.0.0.1",
+  port: 6379
+};
+
+function normalizeBullConnection(
+  connection?: unknown
+): Bull.QueueOptions {
+  return {
+    ...BASE_CONNECTION,
+    ...((connection || {}) as Bull.QueueOptions)
+  };
+}
+
+function normalizeBullMQConnection(
+  connection?: unknown
+): Record<string, unknown> {
+  return {
+    ...BASE_BULLMQ_CONNECTION,
+    ...((connection || {}) as Record<string, unknown>)
+  };
+}
 
 const ASYNC_OPTIONS_TOKEN = "NEST_QUEUE_ASYNC_OPTIONS";
 
@@ -68,7 +94,7 @@ export class QueueProvider {
     } as EventConsumerMetadata;
   }
 
-  public registerConsumers(queues: Map<string, Queue>) {
+  public registerConsumers(queues: Map<string, QueueAdapter>) {
     const consumers = this.getEventConsumers();
 
     consumers.forEach(consumer => {
@@ -78,7 +104,7 @@ export class QueueProvider {
         return;
       }
 
-      queue.process(consumer.eventName, (...args: any[]) => {
+      queue.registerConsumer(consumer.eventName, (...args: any[]) => {
         const method = consumer.instance[consumer.methodName];
 
         if (typeof method !== "function") {
@@ -129,10 +155,11 @@ export class QueueProvider {
 
     return values.map(value => ({
       name: normalizeQueueName(value.name),
-      connection: {
-        ...BASE_CONNECTION,
-        ...value.connection
-      }
+      driver: value.driver || "bull",
+      connection:
+        (value.driver || "bull") === "bullmq"
+          ? normalizeBullMQConnection(value.connection)
+          : normalizeBullConnection(value.connection)
     }));
   }
 
@@ -142,56 +169,74 @@ export class QueueProvider {
       useValue: option
     }));
 
-    const queueProviders: FactoryProvider[] = options.map(option => ({
-      provide: getQueueToken(option.name),
+    const adapterProviders: FactoryProvider[] = options.map(option => ({
+      provide: getQueueAdapterToken(option.name),
       useFactory: (currentOptions: NormalizedQueueModuleOptions) => {
-        return new Bull(currentOptions.name, currentOptions.connection);
+        return createQueueAdapter(currentOptions);
       },
       inject: [`nestQueueOptions_${option.name}`]
     }));
 
+    const queueProviders: FactoryProvider[] = options.map(option => ({
+      provide: getQueueToken(option.name),
+      useFactory: (adapter: QueueAdapter) => adapter.getClient(),
+      inject: [getQueueAdapterToken(option.name)]
+    }));
+
     const registryProvider: FactoryProvider = {
       provide: QUEUE_REGISTRY,
-      useFactory: (...queues: Queue[]) => {
+      useFactory: (...adapters: QueueAdapter[]) => {
         return options.reduce((result, option, index) => {
-          const queue = queues[index];
-          if (queue) {
-            result.set(option.name || DEFAULT_QUEUE_NAME, queue);
+          const adapter = adapters[index];
+          if (adapter) {
+            result.set(option.name || DEFAULT_QUEUE_NAME, adapter);
           }
           return result;
-        }, new Map<string, Queue>());
+        }, new Map<string, QueueAdapter>());
       },
-      inject: options.map(option => getQueueToken(option.name))
+      inject: options.map(option => getQueueAdapterToken(option.name))
     };
 
-    return [...valueProviders, ...queueProviders, registryProvider];
+    return [
+      ...valueProviders,
+      ...adapterProviders,
+      ...queueProviders,
+      registryProvider
+    ];
   }
 
   static createAsyncProviders(options: QueueModuleAsyncOptions): Provider[] {
     const asyncOptionsProvider = this.createAsyncOptionsProvider(options);
 
-    const queueProvider: FactoryProvider = {
-      provide: getQueueToken(DEFAULT_QUEUE_NAME),
+    const adapterProvider: FactoryProvider = {
+      provide: getQueueAdapterToken(DEFAULT_QUEUE_NAME),
       useFactory: (queueOptions: QueueModuleOptions) => {
         const [normalized] = this.normalizeOptions(queueOptions);
         if (!normalized) {
           throw new Error("Queue options are not configured");
         }
-        return new Bull(normalized.name, normalized.connection);
+        return createQueueAdapter(normalized);
       },
       inject: [ASYNC_OPTIONS_TOKEN]
     };
 
+    const queueProvider: FactoryProvider = {
+      provide: getQueueToken(DEFAULT_QUEUE_NAME),
+      useFactory: (adapter: QueueAdapter) => adapter.getClient(),
+      inject: [getQueueAdapterToken(DEFAULT_QUEUE_NAME)]
+    };
+
     const registryProvider: FactoryProvider = {
       provide: QUEUE_REGISTRY,
-      useFactory: (queue: Queue) => {
-        return new Map<string, Queue>([[DEFAULT_QUEUE_NAME, queue]]);
+      useFactory: (adapter: QueueAdapter) => {
+        return new Map<string, QueueAdapter>([[DEFAULT_QUEUE_NAME, adapter]]);
       },
-      inject: [getQueueToken(DEFAULT_QUEUE_NAME)]
+      inject: [getQueueAdapterToken(DEFAULT_QUEUE_NAME)]
     };
 
     const providers: Provider[] = [
       asyncOptionsProvider,
+      adapterProvider,
       queueProvider,
       registryProvider
     ];

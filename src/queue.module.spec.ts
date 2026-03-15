@@ -37,4 +37,29 @@ describe("QueueModule", () => {
       QUEUE_REGISTRY
     ]);
   });
+
+  it("supports bullmq driver options", () => {
+    const dynamicModule = QueueModule.forRoot({
+      name: "events",
+      driver: "bullmq",
+      connection: {
+        host: "127.0.0.1",
+        port: 6379
+      }
+    });
+
+    const providers = (dynamicModule.providers || []) as Array<{
+      provide?: string;
+      useValue?: {
+        name?: string;
+        driver?: string;
+      };
+    }>;
+
+    const optionsProvider = providers.find(
+      provider => provider.provide === "nestQueueOptions_events"
+    );
+
+    expect(optionsProvider?.useValue?.driver).toBe("bullmq");
+  });
 });

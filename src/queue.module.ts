@@ -10,10 +10,10 @@ import {
   QueueModuleAsyncOptions,
   QueueModuleOptions
 } from "./queue.interfaces";
+import { QueueAdapter } from "./queue.adapters";
 import { QueueProvider } from "./queue.provider";
 import { DiscoveryModule } from "@nestjs/core";
 import { MetadataScanner } from "@nestjs/core/metadata-scanner";
-import { Queue } from "bull";
 import { getQueueToken, QUEUE_REGISTRY } from "./queue.types";
 
 @Global()
@@ -25,7 +25,7 @@ export class QueueModule implements OnModuleInit, OnApplicationShutdown {
   constructor(
     private readonly provider: QueueProvider,
     @Inject(QUEUE_REGISTRY)
-    private readonly queueRegistry: Map<string, Queue>
+    private readonly queueRegistry: Map<string, QueueAdapter>
   ) {}
 
   onModuleInit() {
