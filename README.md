@@ -73,6 +73,31 @@ export class MailConsumer {
 }
 ```
 
+### Consumer policy (retry/backoff/concurrency)
+
+`EventConsumer` supports policy options with backward compatibility:
+
+```ts
+@EventConsumer("payments.retry", {
+  queueName: "payments",
+  attempts: 5,
+  backoff: { type: "fixed", delay: 1000 },
+  concurrency: 3
+})
+async handlePayment(job: Job, done: DoneCallback) {
+  done();
+}
+```
+
+Supported options:
+
+- `queueName`
+- `concurrency`
+- `attempts`
+- `backoff`
+- `removeOnComplete`
+- `removeOnFail`
+
 ### Multiple queues
 
 ```ts
@@ -144,7 +169,7 @@ QueueModule.forRootAsync({
 - `QueueModule.forRoot(options | options[])`
 - `QueueModule.forRootAsync(asyncOptions)`
 - `QueueInjection(name?)`
-- `EventConsumer(eventName, queueName?)`
+- `EventConsumer(eventName, queueNameOrOptions?)`
 - `QueueRegistryService.enqueue(eventName, data, options?)`
 - `QueueRegistryService.getHealthSnapshot()`
 
