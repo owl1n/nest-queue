@@ -13,3 +13,5 @@ dist/
 /index.js
 /index.d.ts
 .idea
+
+/local/

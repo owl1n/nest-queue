@@ -1,57 +1,76 @@
-import { DynamicModule, Global, Module, OnModuleInit } from "@nestjs/common";
-import { QueueModuleOptions } from "./queue.interfaces";
+import {
+  DynamicModule,
+  Global,
+  Inject,
+  Module,
+  OnApplicationShutdown,
+  OnModuleInit
+} from "@nestjs/common";
+import {
+  QueueModuleAsyncOptions,
+  QueueModuleOptions
+} from "./queue.interfaces";
 import { QueueProvider } from "./queue.provider";
+import { DiscoveryModule } from "@nestjs/core";
 import { MetadataScanner } from "@nestjs/core/metadata-scanner";
-import { QueueInjection } from "./queue.decorators";
 import { Queue } from "bull";
-
-const defaultOptions: QueueModuleOptions = {
-  name: "default",
-  connection: {
-    redis: {
-      port: 6379
-    }
-  }
-};
+import { getQueueToken, QUEUE_REGISTRY } from "./queue.types";
 
 @Global()
 @Module({
+  imports: [DiscoveryModule],
   providers: [QueueProvider, MetadataScanner]
 })
-export class QueueModule implements OnModuleInit {
+export class QueueModule implements OnModuleInit, OnApplicationShutdown {
   constructor(
     private readonly provider: QueueProvider,
-    @QueueInjection()
-    private readonly queue: Queue
+    @Inject(QUEUE_REGISTRY)
+    private readonly queueRegistry: Map<string, Queue>
   ) {}
 
   onModuleInit() {
-    const consumers = this.provider.getEventConsumers();
-
-    if (consumers && consumers.length) {
-      consumers.forEach(consumer => {
-        this.queue.process(consumer.eventName, (...args) => {
-          consumer.instance.callback = consumer.callback;
-          return consumer.instance.callback(...args);
-        });
-      });
-    }
+    this.provider.registerConsumers(this.queueRegistry);
   }
 
-  static forRoot(options: QueueModuleOptions): DynamicModule {
-    const currentOptions: QueueModuleOptions = Object.assign(
-      defaultOptions,
-      options
+  async onApplicationShutdown() {
+    await Promise.all(
+      [...this.queueRegistry.values()].map(queue => queue.close())
     );
+  }
 
-    const [valueProvider, factoryProvider] = QueueProvider.createProviders(
-      currentOptions
-    );
+  static forRoot(
+    options: QueueModuleOptions | QueueModuleOptions[] = {}
+  ): DynamicModule {
+    const normalizedOptions = QueueProvider.normalizeOptions(options);
+    const providers = QueueProvider.createProviders(normalizedOptions);
+    const exportedTokens = providers
+      .map(provider => {
+        if (typeof provider === "object" && "provide" in provider) {
+          return provider.provide;
+        }
+
+        return null;
+      })
+      .filter(
+        (token): token is string | symbol | ((...args: any[]) => unknown) =>
+          token !== null
+      );
 
     return {
       module: QueueModule,
-      providers: [valueProvider, factoryProvider],
-      exports: [factoryProvider]
+      providers,
+      exports: exportedTokens
+    };
+  }
+
+  static forRootAsync(options: QueueModuleAsyncOptions): DynamicModule {
+    const providers = QueueProvider.createAsyncProviders(options);
+
+    return {
+      module: QueueModule,
+      imports: options.imports || [],
+      providers,
+      exports: [getQueueToken(), QUEUE_REGISTRY]
     };
   }
 }

@@ -1,106 +1,142 @@
-## Queue manager for NestJS applications
-Easy for use and installation into you'r projects.
+## nest-queue
 
-`yarn add nest-queue`
+Lightweight queue module for NestJS applications built on top of `bull`.
 
-Make sure you have installed redis on your host. For local development you can easily install it using [docker](https://hub.docker.com/_/redis/).
+### Requirements
 
-*For better working you need to use `nest` package with `6.*.*` ver.*
-#### How to
+- Node.js `>=20`
+- NestJS `>=11`
+- Redis
 
-1) Add new module in your `app.module.ts` file:
+### Install
 
-    *This module (QueueModule) marked as global.*
-    
-    ```typescript
-    import { Module } from '@nestjs/common';
-    import { QueueModule } from 'nest-queue';
-    
-    @Module({
-        imports: [
-            QueueModule.forRoot({}),
-        ]
-    })
-    export class AppModule {}
-    ```
-    
-    For first parameter `forRoot` function accept options for current module.
-    Settings very simply and have this structure:
-    
-    ```typescript
-    export interface QueueModuleOptions {
-       name?: string,
-       connection?: Bull.QueueOptions,
-    }
-    ```
-    
-    For connection settings you can take help from [Bull documentation](https://optimalbits.github.io/bull/).
-    By default connection setting is:
-    ```
-    connection: {
+```bash
+pnpm add nest-queue bull
+```
+
+### Quick start
+
+```ts
+import { Module } from "@nestjs/common";
+import { QueueModule } from "nest-queue";
+
+@Module({
+  imports: [
+    QueueModule.forRoot({
+      connection: {
         redis: {
-            port: 6379,
+          host: "127.0.0.1",
+          port: 6379
         }
+      }
+    })
+  ]
+})
+export class AppModule {}
+```
+
+### Inject queue and publish jobs
+
+```ts
+import { Controller, Post } from "@nestjs/common";
+import { Queue } from "bull";
+import { QueueInjection } from "nest-queue";
+
+@Controller("jobs")
+export class JobsController {
+  constructor(@QueueInjection() private readonly queue: Queue) {}
+
+  @Post("send")
+  async send() {
+    await this.queue.add("mail.send", { userId: 1 });
+    return { status: "queued" };
+  }
+}
+```
+
+### Consume jobs
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { DoneCallback, Job } from "bull";
+import { EventConsumer } from "nest-queue";
+
+@Injectable()
+export class MailConsumer {
+  @EventConsumer("mail.send")
+  async handle(job: Job, done: DoneCallback) {
+    // process job.data
+    done();
+  }
+}
+```
+
+### Multiple queues
+
+```ts
+QueueModule.forRoot([
+  {
+    name: "default",
+    connection: { redis: { host: "127.0.0.1", port: 6379 } }
+  },
+  {
+    name: "emails",
+    connection: { redis: { host: "127.0.0.1", port: 6380 } }
+  }
+]);
+```
+
+```ts
+constructor(@QueueInjection("emails") private readonly emailQueue: Queue) {}
+
+@EventConsumer("mail.send", "emails")
+handleEmail(job: Job, done: DoneCallback) {
+  done();
+}
+```
+
+### Async module registration
+
+```ts
+QueueModule.forRootAsync({
+  useFactory: async (config: ConfigService) => ({
+    connection: {
+      redis: {
+        host: config.get("REDIS_HOST"),
+        port: Number(config.get("REDIS_PORT"))
+      }
     }
-    ```
+  }),
+  inject: [ConfigService]
+});
+```
 
-    It means we will work with `localhost:6379` host.
+> `forRootAsync` registers the default queue token (`@QueueInjection()`).
 
-2) Add queue and handle events
+### API
 
-    For add job to queue u need inject a Queue instance into your service or controller.
-    For example:
+- `QueueModule.forRoot(options | options[])`
+- `QueueModule.forRootAsync(asyncOptions)`
+- `QueueInjection(name?)`
+- `EventConsumer(eventName, queueName?)`
 
-    ```typescript
-    import { Controller, Get } from '@nestjs/common'
-    import { Queue } from 'bull';
-    import { QueueInjection } from 'nest-queue';
+### Development
 
-    @Controller('test')
-    class TestController {
-       constructor(
-           @QueueInjection() private readonly queue: Queue,
-       ) {}
-    
-       @Get('/')
-       index() {
-           this.queue.add('testEvent', { data: 1, somedata: 2 });
-       }
-    }
-    ```
+```bash
+pnpm install
+pnpm run build
+pnpm test
+```
 
-    In this case you can manipulate with job adding. You can add delayed call and etc.
-    Information about it you can take from [Bull documentation](https://optimalbits.github.io/bull/).
+### Community roadmap
 
-    Anywhere (controllers, services) in your project you can provide event handler for redis calls.
-    `@EventConsumer(eventName)` method decorator allows you to work with it. For example:
-    
-    ```typescript
-    import { Job, DoneCallback } from 'bull';
-    import { EventConsumer } from 'nest-queue';
-    
-    class TestService {
-        @EventConsumer('testEvent')
-        eventHandler(job: Job, done: DoneCallback) {
-           // job.data has passed data from queue adding
-           done(); // required call to stop job
-        }
-    }
-    ```
-    
-    *Context (this) in this function equals to TestService prototype with all resolved dependencies*
-    
-    Function that will provide as event handler receive two arguments `Job` and `DoneCallback`.
-    This function calls as bull-processors and you can take help about from bull [Bull documentation](https://optimalbits.github.io/bull/).
+Current package is intentionally minimal. The most requested next steps for queue modules in service ecosystems are:
 
-#### Future Goals
-
-* Add tests;
-* Async module adding;
-* Workaround with bull and provide once module for manipulating with jobs;
-* Add console commands lika a `queue list` and etc for receiving information about
-all processing jobs and allow to restart failed jobs (like a Laravel artisan queue manager).
-
-#### Contributors
-
-* [Maxim Markin](https://github.com/owl1n)
+- `BullMQ` adapter and compatibility mode for migration from `bull`
+- Native retry/backoff policies via decorators/config presets
+- Per-handler concurrency + rate limiting in decorator options
+- First-class telemetry (`OpenTelemetry` traces, metrics, queue health probes)
+- Admin primitives (`pause/resume/drain`, dead-letter flow, replay failed jobs)
+- Typed payload contracts for producer/consumer pairs
+- Outbox/inbox patterns for exactly-once-like semantics in distributed systems
+- Better DevEx around local testing (in-memory adapter / test harness)
