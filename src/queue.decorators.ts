@@ -1,4 +1,5 @@
 import { Inject } from "@nestjs/common";
+import { EventConsumerOptions } from "./queue.interfaces";
 import {
   getQueueToken,
   normalizeQueueName,
@@ -9,7 +10,24 @@ export function QueueInjection(name?: string) {
   return Inject(getQueueToken(name));
 }
 
-export function EventConsumer(eventName: string, queueName?: string) {
+function resolveEventConsumerOptions(
+  queueNameOrOptions?: string | EventConsumerOptions
+): EventConsumerOptions {
+  if (typeof queueNameOrOptions === "string") {
+    return {
+      queueName: queueNameOrOptions
+    };
+  }
+
+  return queueNameOrOptions || {};
+}
+
+export function EventConsumer(
+  eventName: string,
+  queueNameOrOptions?: string | EventConsumerOptions
+) {
+  const options = resolveEventConsumerOptions(queueNameOrOptions);
+
   const methodDecorator: MethodDecorator = (
     target: object,
     propertyKey: string | symbol,
@@ -23,7 +41,8 @@ export function EventConsumer(eventName: string, queueName?: string) {
       QUEUE_EVENT_METADATA,
       {
         eventName,
-        queueName: normalizeQueueName(queueName),
+        queueName: normalizeQueueName(options.queueName),
+        options,
         methodName: propertyKey.toString(),
         callback: descriptor.value
       },

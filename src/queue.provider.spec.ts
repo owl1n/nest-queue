@@ -45,7 +45,7 @@ describe("QueueProvider", () => {
       registerConsumer: jest.fn()
     } as unknown as QueueAdapter;
 
-    queueProvider.registerConsumers(new Map([["default", queue]]));
+    await queueProvider.registerConsumers(new Map([["default", queue]]));
 
     expect(queue.registerConsumer).toHaveBeenCalledTimes(1);
 
@@ -61,7 +61,7 @@ describe("QueueProvider", () => {
     expect(done).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores consumers with queue names that are not configured", () => {
+  it("ignores consumers with queue names that are not configured", async () => {
     class TestConsumer {
       onSendMail() {
         return true;
@@ -97,9 +97,56 @@ describe("QueueProvider", () => {
       registerConsumer: jest.fn()
     } as unknown as QueueAdapter;
 
-    queueProvider.registerConsumers(new Map([["default", queue]]));
+    await queueProvider.registerConsumers(new Map([["default", queue]]));
 
     expect(queue.registerConsumer).not.toHaveBeenCalled();
+  });
+
+  it("passes consumer options to queue adapter", async () => {
+    class TestConsumer {
+      onProcess() {
+        return true;
+      }
+    }
+
+    Reflect.defineMetadata(
+      QUEUE_EVENT_METADATA,
+      {
+        eventName: "payments.retry",
+        queueName: "default",
+        options: {
+          attempts: 5,
+          backoff: {
+            type: "fixed",
+            delay: 1000
+          },
+          concurrency: 3
+        },
+        methodName: "onProcess",
+        callback: TestConsumer.prototype.onProcess
+      },
+      TestConsumer.prototype.onProcess
+    );
+
+    const queueProvider = new QueueProvider(new MetadataScanner(), {
+      getProviders: () => [{ instance: new TestConsumer() }]
+    } as unknown as DiscoveryService);
+
+    const queue = {
+      name: "default",
+      driver: "bull",
+      close: async () => undefined,
+      getClient: () => undefined,
+      registerConsumer: jest.fn()
+    } as unknown as QueueAdapter;
+
+    await queueProvider.registerConsumers(new Map([["default", queue]]));
+
+    const [, , options] = (queue.registerConsumer as jest.Mock).mock.calls[0];
+    expect(options).toMatchObject({
+      attempts: 5,
+      concurrency: 3
+    });
   });
 
   it("normalizes driver and connection defaults", () => {

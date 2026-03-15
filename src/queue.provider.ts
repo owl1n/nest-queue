@@ -9,6 +9,7 @@ import {
 import { DiscoveryService } from "@nestjs/core";
 import { MetadataScanner } from "@nestjs/core/metadata-scanner";
 import {
+  EventConsumerOptions,
   QueueModuleAsyncOptions,
   QueueDriver,
   QueueModuleOptions,
@@ -27,6 +28,7 @@ import {
 interface EventConsumerMetadata {
   eventName: string;
   queueName: string;
+  options?: EventConsumerOptions;
   methodName: string;
   callback: (...args: any[]) => any;
 }
@@ -94,7 +96,7 @@ export class QueueProvider {
     } as EventConsumerMetadata;
   }
 
-  public registerConsumers(queues: Map<string, QueueAdapter>) {
+  public async registerConsumers(queues: Map<string, QueueAdapter>) {
     const consumers = this.getEventConsumers();
 
     consumers.forEach(consumer => {
@@ -112,8 +114,18 @@ export class QueueProvider {
         }
 
         return method.apply(consumer.instance, args);
-      });
+      }, consumer.options);
     });
+
+    const finalizePromises = [...queues.values()].map(queue => {
+      if (typeof queue.finalizeConsumers === "function") {
+        return queue.finalizeConsumers();
+      }
+
+      return Promise.resolve();
+    });
+
+    await Promise.all(finalizePromises);
   }
 
   public getEventConsumers(): EventConsumerDescriptor[] {
