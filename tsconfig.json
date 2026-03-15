@@ -3,29 +3,26 @@
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": true,
-    "noImplicitAny": false,
-    "noUnusedLocals": false,
+    "declarationMap": false,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
     "removeComments": false,
-    "noLib": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "target": "es6",
+    "target": "es2021",
     "sourceMap": false,
     "allowJs": false,
     "rootDir": "./src",
     "baseUrl": "./",
     "outDir": "./dist",
-    "lib": ["es2017"]
+    "lib": ["es2021"],
+    "types": ["node", "jest"]
   },
-  "include": [
-    "*.ts",
-    "**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": [
-    "./index.ts",
-    "./index.d.ts",
     "node_modules",
-    "./**/*.spec.ts",
+    "src/**/*.spec.ts",
     "examples",
     "__tests__"
   ]

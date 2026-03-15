@@ -1,17 +1,29 @@
 {
   "name": "nest-queue",
-  "version": "1.0.3",
-  "description": "Queue manager for NestJS Framework for Redis (via bull package)",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "Queue module for NestJS applications with Bull",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "packageManager": "pnpm@10.6.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "jest",
-    "coverage": "jest --coverage",
-    "coveralls": "yarn run coverage --coverageReporters=text-lcov | coveralls",
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "clean": "rimraf dist coverage",
+    "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "build": "rm -rf ./dist && tsc && npm run build:index",
-    "build:index": "rm -rf ./index.js ./index.d.ts && tsc -d --skipLibCheck ./index.ts",
-    "format": "prettier **/*.ts --ignore-path ./.prettierignore --write && git status",
-    "prepublish": "npm run format && npm run build"
+    "coverage": "jest --coverage",
+    "format": "prettier \"**/*.{ts,md,json}\" --ignore-path ./.prettierignore --write",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "prepare": "pnpm run build"
   },
   "keywords": [
     "nestjs",
@@ -29,25 +41,30 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@nestjs/common": "^6.1.1",
-    "@nestjs/core": "^6.1.1",
-    "bull": "^3.7.0",
-    "rxjs": "^6.2.2"
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "bull": "^4.16.5",
+    "rxjs": "^7.8.0"
   },
   "devDependencies": {
-    "@nestjs/common": "^6.1.1",
-    "@nestjs/core": "^6.1.1",
-    "@types/bull": "3.5.11",
-    "@types/jest": "24.0.11",
-    "@types/node": "11.13.5",
-    "bull": "3.7.0",
-    "coveralls": "3.0.3",
-    "jest": "24.7.1",
-    "prettier": "1.17.0",
-    "reflect-metadata": "0.1.13",
-    "rxjs": "6.4.0",
-    "ts-jest": "24.0.2",
-    "typescript": "3.4.4"
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.10",
+    "@eslint/js": "^9.23.0",
+    "bull": "^4.16.5",
+    "eslint": "^9.23.0",
+    "eslint-config-prettier": "^10.1.1",
+    "globals": "^16.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.5.3",
+    "reflect-metadata": "^0.2.2",
+    "rimraf": "^6.0.1",
+    "rxjs": "^7.8.2",
+    "ts-jest": "^29.2.6",
+    "typescript-eslint": "^8.27.0",
+    "typescript": "^5.8.2"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -55,11 +72,12 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".spec.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "testEnvironment": "node",
     "coverageDirectory": "./coverage"
   }
 }
