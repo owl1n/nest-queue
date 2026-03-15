@@ -1,21 +1,35 @@
 import { Inject } from "@nestjs/common";
-import { QUEUE_EVENT_METADATA } from "./queue.types";
+import {
+  getQueueToken,
+  normalizeQueueName,
+  QUEUE_EVENT_METADATA
+} from "./queue.types";
 
 export function QueueInjection(name?: string) {
-  return Inject(`nestQueue_${name || "default"}`);
+  return Inject(getQueueToken(name));
 }
 
-export function EventConsumer(eventName: string) {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+export function EventConsumer(eventName: string, queueName?: string) {
+  const methodDecorator: MethodDecorator = (
+    target: object,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ) => {
+    if (typeof descriptor.value !== "function") {
+      return;
+    }
+
     Reflect.defineMetadata(
       QUEUE_EVENT_METADATA,
       {
         eventName,
-        target: target.constructor.name,
-        methodName: propertyKey,
+        queueName: normalizeQueueName(queueName),
+        methodName: propertyKey.toString(),
         callback: descriptor.value
       },
       descriptor.value
     );
   };
+
+  return methodDecorator;
 }
