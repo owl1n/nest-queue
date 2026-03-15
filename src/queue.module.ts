@@ -10,22 +10,23 @@ import {
   QueueModuleAsyncOptions,
   QueueModuleOptions
 } from "./queue.interfaces";
+import { QueueAdapter } from "./queue.adapters";
+import { QueueRegistryService } from "./queue.registry.service";
 import { QueueProvider } from "./queue.provider";
 import { DiscoveryModule } from "@nestjs/core";
 import { MetadataScanner } from "@nestjs/core/metadata-scanner";
-import { Queue } from "bull";
 import { getQueueToken, QUEUE_REGISTRY } from "./queue.types";
 
 @Global()
 @Module({
   imports: [DiscoveryModule],
-  providers: [QueueProvider, MetadataScanner]
+  providers: [QueueProvider, QueueRegistryService, MetadataScanner]
 })
 export class QueueModule implements OnModuleInit, OnApplicationShutdown {
   constructor(
     private readonly provider: QueueProvider,
     @Inject(QUEUE_REGISTRY)
-    private readonly queueRegistry: Map<string, Queue>
+    private readonly queueRegistry: Map<string, QueueAdapter>
   ) {}
 
   onModuleInit() {
@@ -58,8 +59,8 @@ export class QueueModule implements OnModuleInit, OnApplicationShutdown {
 
     return {
       module: QueueModule,
-      providers,
-      exports: exportedTokens
+      providers: [...providers, QueueRegistryService],
+      exports: [...exportedTokens, QueueRegistryService]
     };
   }
 
@@ -69,8 +70,8 @@ export class QueueModule implements OnModuleInit, OnApplicationShutdown {
     return {
       module: QueueModule,
       imports: options.imports || [],
-      providers,
-      exports: [getQueueToken(), QUEUE_REGISTRY]
+      providers: [...providers, QueueRegistryService],
+      exports: [getQueueToken(), QUEUE_REGISTRY, QueueRegistryService]
     };
   }
 }

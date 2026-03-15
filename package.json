@@ -44,7 +44,13 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "bull": "^4.16.5",
+    "bullmq": "^5.56.0",
     "rxjs": "^7.8.0"
+  },
+  "peerDependenciesMeta": {
+    "bullmq": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@nestjs/common": "^11.0.0",
@@ -54,6 +60,7 @@
     "@types/node": "^22.13.10",
     "@eslint/js": "^9.23.0",
     "bull": "^4.16.5",
+    "bullmq": "^5.56.0",
     "eslint": "^9.23.0",
     "eslint-config-prettier": "^10.1.1",
     "globals": "^16.0.0",
