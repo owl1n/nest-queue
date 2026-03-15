@@ -23,3 +23,14 @@ export interface QueueModuleAsyncOptions
   useExisting?: Type<QueueModuleOptionsFactory>;
   useFactory?: (...args: any[]) => QueueModuleOptions | Promise<QueueModuleOptions>;
 }
+
+export interface QueueEnqueueOptions {
+  queueName?: string;
+  options?: unknown;
+}
+
+export interface QueueHealthSnapshot {
+  name: string;
+  driver: QueueDriver;
+  counts: Record<string, number>;
+}

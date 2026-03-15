@@ -1,4 +1,5 @@
 import { QueueModule } from "./queue.module";
+import { QueueRegistryService } from "./queue.registry.service";
 import { getQueueToken, QUEUE_REGISTRY } from "./queue.types";
 
 describe("QueueModule", () => {
@@ -32,10 +33,9 @@ describe("QueueModule", () => {
       })
     });
 
-    expect(dynamicModule.exports).toEqual([
-      getQueueToken("default"),
-      QUEUE_REGISTRY
-    ]);
+    expect(dynamicModule.exports).toContain(getQueueToken("default"));
+    expect(dynamicModule.exports).toContain(QUEUE_REGISTRY);
+    expect(dynamicModule.exports).toContain(QueueRegistryService);
   });
 
   it("supports bullmq driver options", () => {

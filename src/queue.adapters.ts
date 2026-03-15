@@ -2,6 +2,7 @@ import * as Bull from "bull";
 import { Queue as BullQueue } from "bull";
 import {
   ConnectionOptions as BullMQConnectionOptions,
+  JobsOptions as BullMQJobsOptions,
   Job as BullMQJob,
   Queue as BullMQQueue,
   Worker as BullMQWorker
@@ -15,6 +16,8 @@ export interface QueueAdapter {
   readonly driver: QueueDriver;
 
   getClient(): unknown;
+  add(eventName: string, data: unknown, options?: unknown): Promise<unknown>;
+  getJobCounts(): Promise<Record<string, number>>;
   registerConsumer(eventName: string, handler: QueueHandler): void;
   close(): Promise<void>;
 }
@@ -29,6 +32,15 @@ export class BullQueueAdapter implements QueueAdapter {
 
   getClient(): BullQueue {
     return this.queue;
+  }
+
+  async add(eventName: string, data: unknown, options?: unknown): Promise<unknown> {
+    return this.queue.add(eventName, data, options as Bull.JobOptions);
+  }
+
+  async getJobCounts(): Promise<Record<string, number>> {
+    const counts = await this.queue.getJobCounts();
+    return counts as unknown as Record<string, number>;
   }
 
   registerConsumer(eventName: string, handler: QueueHandler) {
@@ -53,6 +65,15 @@ export class BullMQQueueAdapter implements QueueAdapter {
 
   getClient(): BullMQQueue {
     return this.queue;
+  }
+
+  async add(eventName: string, data: unknown, options?: unknown): Promise<unknown> {
+    return this.queue.add(eventName, data, options as BullMQJobsOptions);
+  }
+
+  async getJobCounts(): Promise<Record<string, number>> {
+    const counts = await this.queue.getJobCounts();
+    return counts as unknown as Record<string, number>;
   }
 
   registerConsumer(eventName: string, handler: QueueHandler) {

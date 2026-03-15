@@ -145,6 +145,28 @@ QueueModule.forRootAsync({
 - `QueueModule.forRootAsync(asyncOptions)`
 - `QueueInjection(name?)`
 - `EventConsumer(eventName, queueName?)`
+- `QueueRegistryService.enqueue(eventName, data, options?)`
+- `QueueRegistryService.getHealthSnapshot()`
+
+### Unified producer and health API
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { QueueRegistryService } from "nest-queue";
+
+@Injectable()
+export class QueueFacade {
+  constructor(private readonly queues: QueueRegistryService) {}
+
+  async publish() {
+    await this.queues.enqueue("mail.send", { userId: 42 }, { queueName: "events" });
+  }
+
+  async health() {
+    return this.queues.getHealthSnapshot();
+  }
+}
+```
 
 ### Development
 
@@ -159,6 +181,7 @@ pnpm test
 Current package is intentionally minimal. The most requested next steps for queue modules in service ecosystems are:
 
 - `BullMQ` adapter and compatibility mode for migration from `bull` ✅
+- Unified producer API and queue health snapshot service ✅
 - Native retry/backoff policies via decorators/config presets
 - Per-handler concurrency + rate limiting in decorator options
 - First-class telemetry (`OpenTelemetry` traces, metrics, queue health probes)
