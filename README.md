@@ -73,6 +73,31 @@ export class MailConsumer {
 }
 ```
 
+### Consumer policy (retry/backoff/concurrency)
+
+`EventConsumer` supports policy options with backward compatibility:
+
+```ts
+@EventConsumer("payments.retry", {
+  queueName: "payments",
+  attempts: 5,
+  backoff: { type: "fixed", delay: 1000 },
+  concurrency: 3
+})
+async handlePayment(job: Job, done: DoneCallback) {
+  done();
+}
+```
+
+Supported options:
+
+- `queueName`
+- `concurrency`
+- `attempts`
+- `backoff`
+- `removeOnComplete`
+- `removeOnFail`
+
 ### Multiple queues
 
 ```ts
@@ -144,7 +169,7 @@ QueueModule.forRootAsync({
 - `QueueModule.forRoot(options | options[])`
 - `QueueModule.forRootAsync(asyncOptions)`
 - `QueueInjection(name?)`
-- `EventConsumer(eventName, queueName?)`
+- `EventConsumer(eventName, queueNameOrOptions?)`
 - `QueueRegistryService.enqueue(eventName, data, options?)`
 - `QueueRegistryService.getHealthSnapshot()`
 
@@ -175,6 +200,36 @@ pnpm install
 pnpm run build
 pnpm test
 ```
+
+### CI/CD and releases
+
+Repository includes 3 GitHub Actions workflows:
+
+- `CI` (`.github/workflows/ci.yml`)
+  - Runs on pull requests and pushes to `master`/feature branches.
+  - Executes: `pnpm lint`, `pnpm run build`, `pnpm test`.
+
+- `Release Please` (`.github/workflows/release-please.yml`)
+  - Runs on pushes to `master`.
+  - Creates/updates a Release PR based on conventional commits.
+  - On merge, creates git tag (`vX.Y.Z`) and GitHub Release.
+
+- `Publish to npm` (`.github/workflows/publish.yml`)
+  - Runs when a GitHub Release is published.
+  - Builds and publishes package to npm with provenance.
+
+#### Required GitHub secrets
+
+- `NPM_TOKEN` — npm automation token with publish rights for `nest-queue`.
+
+#### Recommended commit format
+
+Use conventional commit types so release notes and versioning are meaningful:
+
+- `feat:` for new features (minor bump)
+- `fix:` for bug fixes (patch bump)
+- `feat!:` or `BREAKING CHANGE:` in body for major bump
+- `docs:`, `chore:`, `refactor:` for non-feature updates
 
 ### Community roadmap
 

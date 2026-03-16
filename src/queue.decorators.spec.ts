@@ -42,4 +42,35 @@ describe("EventConsumer", () => {
       methodName: "handle"
     });
   });
+
+  it("stores metadata with policy options", () => {
+    class TestConsumer {
+      @EventConsumer("payments.retry", {
+        queueName: "payments",
+        attempts: 5,
+        backoff: {
+          type: "fixed",
+          delay: 1000
+        },
+        concurrency: 3
+      })
+      handle() {
+        return true;
+      }
+    }
+
+    const callback = TestConsumer.prototype.handle;
+    const metadata = Reflect.getMetadata(QUEUE_EVENT_METADATA, callback);
+
+    expect(metadata).toMatchObject({
+      eventName: "payments.retry",
+      queueName: "payments",
+      methodName: "handle",
+      options: {
+        queueName: "payments",
+        attempts: 5,
+        concurrency: 3
+      }
+    });
+  });
 });

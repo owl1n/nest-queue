@@ -29,6 +29,18 @@ export interface QueueEnqueueOptions {
   options?: unknown;
 }
 
+export interface QueueJobPolicy {
+  attempts?: number;
+  backoff?: number | { type: string; delay: number };
+  removeOnComplete?: boolean | number;
+  removeOnFail?: boolean | number;
+}
+
+export interface EventConsumerOptions extends QueueJobPolicy {
+  queueName?: string;
+  concurrency?: number;
+}
+
 export interface QueueHealthSnapshot {
   name: string;
   driver: QueueDriver;

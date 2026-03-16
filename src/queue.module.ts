@@ -29,8 +29,8 @@ export class QueueModule implements OnModuleInit, OnApplicationShutdown {
     private readonly queueRegistry: Map<string, QueueAdapter>
   ) {}
 
-  onModuleInit() {
-    this.provider.registerConsumers(this.queueRegistry);
+  async onModuleInit() {
+    await this.provider.registerConsumers(this.queueRegistry);
   }
 
   async onApplicationShutdown() {
