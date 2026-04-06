@@ -42,7 +42,7 @@
   "license": "MIT",
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
+    "@nestjs/core": "^11.1.18",
     "bull": "^4.16.5",
     "bullmq": "^5.56.0",
     "rxjs": "^7.8.0"
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
+    "@nestjs/core": "^11.1.18",
     "@nestjs/testing": "^11.0.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.10",
